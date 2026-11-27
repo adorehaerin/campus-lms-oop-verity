@@ -5,15 +5,30 @@ from portal import Portal
 from student import Student
 
 
+def format_dt(dt: datetime) -> str:
+    return dt.strftime("%Y-%m-%d %H:%M")
+
+
+def print_student_summary(student: Student) -> None:
+    print(f"\n--- {student.name} ({student.student_id}) ---")
+    if not student.submissions:
+        print("  Submissions: None")
+    else:
+        for task_title, content in student.submissions.items():
+            grade = student.grades.get(task_title)
+            grade_text = f"{grade:g} pts" if grade is not None else "Ungraded"
+            print(f"  - {task_title}: [{grade_text}] -> {content}")
+
+
 def run_demo() -> None:
     portal = Portal("CS 102 - Object-Oriented Programming")
-    print(f"=== Initialized {portal.course_name} ===")
+    print(f"=== {portal.course_name} ===\n")
 
     alice = Student("STU-001", "Alice Santos")
     bob = Student("STU-002", "Bob Reyes")
     portal.register_student(alice)
     portal.register_student(bob)
-    print(f"Registered: {alice}, {bob}")
+    print(f"Students registered : {alice.name}, {bob.name}")
 
     now = datetime.now()
     lab_task = AssignmentTask(
@@ -28,7 +43,11 @@ def run_demo() -> None:
     )
     portal.add_task(lab_task)
     portal.add_task(quiz_task)
-    print(f"Added tasks: '{lab_task.title}' and '{quiz_task.title}'")
+    print(
+        f"Tasks added         : "
+        f"{lab_task.title} (due {format_dt(lab_task.deadline)}, {lab_task.max_points:g} pts) | "
+        f"{quiz_task.title} (due {format_dt(quiz_task.deadline)}, {quiz_task.max_points:g} pts)\n"
+    )
 
     portal.submit_task(
         student_id="STU-001",
@@ -37,28 +56,38 @@ def run_demo() -> None:
         submitted_at=now,
     )
     portal.assign_grade("STU-001", "OOP Lab 1: Classes & Encapsulation", 47.5)
-    print(f"Alice submissions: {alice.submissions}")
-    print(f"Alice grades: {alice.grades}")
 
-    try:
-        portal.submit_task(
-            student_id="STU-002",
-            task_title="Quiz 1: Inheritance Basics",
-            content="My late answer",
-            submitted_at=now,
-        )
-    except PermissionError as exc:
-        print(f"[Expected Error - Late Submission]: {exc}")
+    checks = [
+        (
+            "Late Submission",
+            lambda: portal.submit_task(
+                student_id="STU-002",
+                task_title="Quiz 1: Inheritance Basics",
+                content="My late answer",
+                submitted_at=now,
+            ),
+            (PermissionError, ValueError),
+        ),
+        (
+            "Invalid Score",
+            lambda: portal.assign_grade("STU-001", "OOP Lab 1: Classes & Encapsulation", 99.0),
+            (ValueError, TypeError),
+        ),
+        (
+            "Missing Submission",
+            lambda: portal.assign_grade("STU-002", "OOP Lab 1: Classes & Encapsulation", 40.0),
+            (ValueError,),
+        ),
+    ]
 
-    try:
-        portal.assign_grade("STU-001", "OOP Lab 1: Classes & Encapsulation", 99.0)
-    except ValueError as exc:
-        print(f"[Expected Error - Invalid Score]: {exc}")
+    for label, action, expected_exceptions in checks:
+        try:
+            action()
+        except expected_exceptions as exc:
+            print(f"[OK - {label}] {exc}")
 
-    try:
-        portal.assign_grade("STU-002", "OOP Lab 1: Classes & Encapsulation", 40.0)
-    except ValueError as exc:
-        print(f"[Expected Error - Missing Submission]: {exc}")
+    print_student_summary(alice)
+    print_student_summary(bob)
 
 
 if __name__ == "__main__":
