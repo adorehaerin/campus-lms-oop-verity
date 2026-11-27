@@ -84,7 +84,7 @@ def run_demo() -> None:
         try:
             action()
         except expected_exceptions as exc:
-            print(f"[OK - {label}] {exc}")
+            print(f"[PASSED - {label}] {exc}")
 
     print_student_summary(alice)
     print_student_summary(bob)
