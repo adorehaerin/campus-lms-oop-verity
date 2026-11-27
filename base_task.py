@@ -1,51 +1,47 @@
+
 from abc import ABC, abstractmethod
-from datetime import datetime
 
 
-class BaseTask(ABC):
-    """Abstract base class for LMS tasks with encapsulated deadline rules."""
+class AcademicTask(ABC):
+    """Abstract base class for academic tasks."""
 
-    def __init__(self, title: str, deadline: datetime, max_points: float = 100.0):
-        if not title or not title.strip():
+    def __init__(self, title: str, max_points: float):
+        if not isinstance(title, str) or not title.strip():
             raise ValueError("Task title cannot be empty.")
-        if not isinstance(deadline, datetime):
-            raise TypeError("Deadline must be a datetime instance.")
+
+        if not isinstance(max_points, (int, float)) or isinstance(max_points, bool):
+            raise TypeError("Max points must be a number.")
+
         if max_points <= 0:
             raise ValueError("Max points must be greater than zero.")
 
         self.__title = title.strip()
-        self.__deadline = deadline
         self.__max_points = float(max_points)
+        self.__is_graded = False
 
     @property
-    def title(self) -> str:
+    def title(self):
         return self.__title
 
     @property
-    def deadline(self) -> datetime:
-        return self.__deadline
-
-    @property
-    def max_points(self) -> float:
+    def max_points(self):
         return self.__max_points
 
-    def is_past_deadline(self, check_time: datetime | None = None) -> bool:
-        current_time = check_time if check_time is not None else datetime.now()
-        return current_time > self.__deadline
+    @property
+    def is_graded(self):
+        return self.__is_graded
 
     @abstractmethod
-    def validate_submission(self, content: str, submitted_at: datetime | None = None) -> None:
-        """Validate whether a submission is allowed."""
+    def submit_work(self):
+        """Submit academic work."""
         pass
 
+    @abstractmethod
+    def grade_work(self):
+        """Grade submitted academic work."""
+        pass
 
-class AssignmentTask(BaseTask):
-    """Concrete task implementation enforcing deadline checks."""
-
-    def validate_submission(self, content: str, submitted_at: datetime | None = None) -> None:
-        if self.is_past_deadline(submitted_at):
-            raise PermissionError(
-                f"Submission rejected for '{self.title}': deadline ({self.deadline}) has passed."
-            )
-        if not content or not content.strip():
-            raise ValueError("Submission content cannot be empty.")
+    @abstractmethod
+    def get_details(self):
+        """Return task details."""
+        pass
